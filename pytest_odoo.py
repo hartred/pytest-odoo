@@ -68,6 +68,20 @@ def pytest_cmdline_main(config):
         # Restore the default one.
         signal.signal(signal.SIGINT, signal.default_int_handler)
         with odoo.api.Environment.manage():
+            with odoo.registry(odoo.tests.common.get_db_name()).cursor() as cr:
+                # Load our context and environment given the database cursor and UID
+                ctx = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})[
+                    'res.users'].context_get()
+                env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, ctx)
+
+                for module in env['ir.module.module'].search(
+                        [('state', '=', 'installed')]):
+                    if module.name != 'km_connector':
+                        try:
+                            __import__(
+                                'odoo.addons.{}.models'.format(module.name))
+                        except BaseException:
+                            pass
             yield
     else:
         yield
