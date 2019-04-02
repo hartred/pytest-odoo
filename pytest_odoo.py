@@ -4,6 +4,8 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/lgpl.html)
 
 
+from collections import namedtuple
+
 import pytest
 import signal
 import os
@@ -83,6 +85,32 @@ def load_registry():
     # since Odoo sets it when loading test suites.
     threading.currentThread().testing = True
     odoo.registry(odoo.tests.common.get_db_name())
+
+
+EnvParams = namedtuple(
+    'EnvParams', ['registry', 'cr', 'env']
+)
+
+
+@pytest.fixture(scope='session')
+def env_params():
+    registry = odoo.registry(odoo.tests.common.get_db_name())
+    cr = registry.cursor()
+    env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+    params = EnvParams(registry, cr, env)
+
+    yield params
+
+
+@pytest.fixture(scope='function')
+def transaction(env_params):
+    yield
+
+    env_params.registry.clear_caches()
+    env_params.registry.reset_changes()
+    env_params.env.reset()
+    env_params.cr.rollback()
+    env_params.cr.close()
 
 
 @pytest.fixture(scope='module', autouse=True)
