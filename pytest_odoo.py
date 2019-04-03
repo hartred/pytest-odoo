@@ -82,6 +82,12 @@ def pytest_cmdline_main(config):
                                 'odoo.addons.{}.models'.format(module.name))
                         except BaseException:
                             pass
+                        finally:
+                            print(
+                                'module {} has been imported successfully'.format(
+                                    module.name
+                                )
+                            )
             yield
     else:
         yield
